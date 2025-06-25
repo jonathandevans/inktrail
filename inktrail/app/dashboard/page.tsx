@@ -1,5 +1,3 @@
 export default function DashboardRoute() {
-  return (
-    <div></div>
-  );
+  return <div>Dashboard</div>;
 }
