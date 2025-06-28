@@ -1,7 +1,38 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { db } from "@/lib/db";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { Book, FileIcon, PlusCircle, Settings } from "lucide-react";
+import {
+  Book,
+  FileIcon,
+  MoreHorizontal,
+  PlusCircle,
+  Settings,
+} from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -46,7 +77,7 @@ export default async function SiteIdRoute({
           </Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href="#">
+          <Link href={`/dashboard/sites/${params.siteId}/settings`}>
             <Settings className="size-4" />
             Settings
           </Link>
@@ -80,7 +111,86 @@ export default async function SiteIdRoute({
           </Button>
         </div>
       ) : (
-        <>no data</>
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Articles</CardTitle>
+              <CardDescription>
+                Manage your Articles in a simple and intuitive interface
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Image</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="text-end">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <Image
+                          src={item.image}
+                          width={64}
+                          height={64}
+                          alt="Article Cover Image"
+                          className="size-16 rounded-md object-cover"
+                        />
+                      </TableCell>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="bg-green-500/10 text-green-500"
+                        >
+                          Published
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Intl.DateTimeFormat("en-GB", {
+                          dateStyle: "full",
+                        }).format(item.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <Link
+                                href={`/dashboard/sites/${params.siteId}/${item.id}`}
+                              >
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link
+                                className="text-red-500!"
+                                href={`/dashboard/sites/${params.siteId}/${item.id}/delete`}
+                              >
+                                Delete
+                              </Link>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </>
   );
