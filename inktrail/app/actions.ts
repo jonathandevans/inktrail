@@ -9,6 +9,7 @@ import {
   siteSchema,
 } from "@/lib/zod-schemas";
 import { db } from "@/lib/db";
+import { stripe } from "@/lib/stripe";
 
 export async function createSiteAction(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -146,4 +147,53 @@ export async function deleteSiteAction(formData: FormData) {
   });
 
   return redirect("/dashboard/sites");
+}
+
+export async function createSubscriptionAction() {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+  if (!user) return redirect("/api/auth/login");
+
+  let stripeUserId = await db.user.findUnique({
+    where: {
+      id: user.id,
+    },
+    select: {
+      customerId: true,
+      email: true,
+      firstName: true,
+    },
+  });
+
+  if (!stripeUserId?.customerId) {
+    const stripeCustomer = await stripe.customers.create({
+      email: stripeUserId?.email,
+      name: stripeUserId?.firstName,
+    });
+
+    stripeUserId = await db.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        customerId: stripeCustomer.id,
+      },
+    });
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    customer: stripeUserId.customerId!,
+    mode: "subscription",
+    billing_address_collection: "auto",
+    payment_method_types: ["card"],
+    customer_update: {
+      address: "auto",
+      name: "auto",
+    },
+    success_url: `${process.env.KINDE_SITE_URL}/dashboard/payment/success`,
+    cancel_url: `${process.env.KINDE_SITE_URL}/dashboard/payment/cancelled`,
+    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+  });
+
+  return redirect(session.url as string);
 }
