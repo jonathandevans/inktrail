@@ -37,24 +37,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 async function getData(userId: string, siteId: string) {
-  const data = await db.article.findMany({
+  const data = await db.site.findUnique({
     where: {
+      id: siteId,
       userId: userId,
-      siteId: siteId,
     },
     select: {
-      image: true,
-      title: true,
-      createdAt: true,
-      id: true,
-      Site: {
+      subdirectory: true,
+      articles: {
         select: {
-          subdirectory: true,
+          image: true,
+          title: true,
+          createdAt: true,
+          id: true,
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
     },
   });
 
@@ -76,7 +76,7 @@ export default async function SiteIdRoute({
     <>
       <div className="flex w-full justify-end gap-x-4">
         <Button asChild variant="secondary">
-          <Link href={`/blog/${data[0].Site?.subdirectory}`}>
+          <Link href={`/blog/${data?.subdirectory}`}>
             <Book className="size-4" />
             View Blog
           </Link>
@@ -95,7 +95,7 @@ export default async function SiteIdRoute({
         </Button>
       </div>
 
-      {data === undefined || data.length === 0 ? (
+      {data?.articles === undefined || data.articles.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8 text-center animate-in fade-in-50">
           <div className="flex size-20 items-center justify-center bg-primary/10 rounded-full">
             <FileIcon className="size-10 text-primary" />
@@ -136,7 +136,7 @@ export default async function SiteIdRoute({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((item) => (
+                  {data.articles.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell>
                         <Image

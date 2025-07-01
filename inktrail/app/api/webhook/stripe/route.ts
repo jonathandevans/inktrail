@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       signature,
-      process.env.STRIPE_PUBLISHABLE_KEY as string
+      process.env.STRIPE_WEBHOOK_SECRET as string
     );
   } catch (error: unknown) {
     return new Response("Webhook error", { status: 400 });
@@ -32,5 +32,35 @@ export async function POST(req: Request) {
     });
 
     if (!user) throw new Error("User not found");
+
+    await db.subscription.create({
+      data: {
+        stripeSubscriptionId: subscription.id,
+        userId: user.id,
+        currentPeriodStart: subscription.start_date,
+        status: subscription.status,
+        planId: subscription.items.data[0].plan.id,
+        interval: String(subscription.items.data[0].plan.interval),
+      },
+    });
   }
+
+  else if (event.type === "invoice.payment_succeeded") {
+    const subscription = await stripe.subscriptions.retrieve(
+      session.subscription as string
+    );
+
+    await db.subscription.update({
+      where: {
+        stripeSubscriptionId: subscription.id,
+      },
+      data: {
+        planId: subscription.items.data[0].price.id,
+        currentPeriodStart: subscription.start_date,
+        status: subscription.status,
+      },
+    });
+  }
+
+  return new Response(null, { status: 200 });
 }

@@ -122,7 +122,7 @@ export default async function DashboardRoute() {
               <CardFooter>
                 <Button asChild className="w-full">
                   <Link href={`/dashboard/sites/${item.siteId}/${item.id}`}>
-                    View Articles
+                    View Article
                   </Link>
                 </Button>
               </CardFooter>

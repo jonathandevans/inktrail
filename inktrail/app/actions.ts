@@ -16,30 +16,58 @@ export async function createSiteAction(prevState: any, formData: FormData) {
   const user = await getUser();
   if (!user) return redirect("/api/auth/login");
 
-  const submission = await parseWithZod(formData, {
-    schema: siteCreationSchema({
-      async isSubdirectoryUnique() {
-        const existingSubdirectory = await db.site.findUnique({
-          where: {
-            subdirectory: formData.get("subdirectory") as string,
-          },
-        });
-        return !existingSubdirectory;
+  const [subStatus, sites] = await Promise.all([
+    db.subscription.findUnique({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        status: true,
       },
     }),
-    async: true,
-  });
+    db.site.findMany({
+      where: {
+        userId: user.id,
+      },
+    }),
+  ]);
 
-  if (submission.status !== "success") return submission.reply();
+  if (!subStatus || subStatus.status !== "active") {
+    if (sites.length < 1) {
+      await createSite();
+    } else {
+      return redirect("/dashboard/pricing");
+    }
+  } else if (subStatus.status === "active") {
+    await createSite();
+  }
 
-  const response = await db.site.create({
-    data: {
-      name: submission.value.name,
-      description: submission.value.description,
-      subdirectory: submission.value.subdirectory,
-      userId: user.id,
-    },
-  });
+  async function createSite() {
+    const submission = await parseWithZod(formData, {
+      schema: siteCreationSchema({
+        async isSubdirectoryUnique() {
+          const existingSubdirectory = await db.site.findUnique({
+            where: {
+              subdirectory: formData.get("subdirectory") as string,
+            },
+          });
+          return !existingSubdirectory;
+        },
+      }),
+      async: true,
+    });
+
+    if (submission.status !== "success") return submission.reply();
+
+    const response = await db.site.create({
+      data: {
+        name: submission.value.name,
+        description: submission.value.description,
+        subdirectory: submission.value.subdirectory,
+        userId: user!.id,
+      },
+    });
+  }
 
   return redirect("/dashboard/sites");
 }

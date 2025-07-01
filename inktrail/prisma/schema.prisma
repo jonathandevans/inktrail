@@ -9,17 +9,33 @@ datasource db {
 }
 
 model User {
-  id           String  @id @unique
+  id           String @id @unique
   email        String
   firstName    String
   lastName     String
   profileImage String
-  customerId   String? @unique
 
   createdAt DateTime @default(now())
 
   sites    Site[]
   articles Article[]
+
+  customerId   String?       @unique
+  subscription Subscription?
+}
+
+model Subscription {
+  stripeSubscriptionId String @id @unique
+  interval             String
+  status               String
+  planId               String
+  currentPeriodStart   Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
 }
 
 model Site {
